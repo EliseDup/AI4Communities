@@ -17,7 +17,7 @@ def read_donneeconso(name):
     dtypes = {'day_str': 'str', 'hour_str': 'str', 'ind': 'float'}
     # parse_dates = ['day']
     data = pd.read_csv(name, sep=";", dtype=dtypes, header=None, names=headers, usecols=[0, 1, 3],
-                       skiprows=[0, 1, 2, 3, 4])  # , parse_dates=parse_dates) #, nrows=20)
+                       skiprows=[0, 1, 2, 3, 4, 5, 6, 7, 8])  # , parse_dates=parse_dates) #, nrows=20)
 
     # Combine day and hour in a single date time
     date_format_str = "%Y-%m-%d,%H:%M"
@@ -95,7 +95,7 @@ def add_meteo(data, meteo):
 
 
 def data_analysis(name, freq):
-    meteo = read_meteo("data/production/SoDa_MERRA2_lat50.606_lon3.388_2018-06-01_2021-06-30_1590683819.csv")
+    meteo = read_meteo("data/meteo/SoDa_MERRA2_lat50.606_lon3.388_2018-06-01_2021-06-30_1590683819.csv")
     data = read_donneeconso(name)
     meteo = aggr_mean_profile(meteo, freq)
     data = aggr_last_profile(data, freq)
@@ -109,43 +109,27 @@ def data_analysis(name, freq):
     data['hour_int'] = [data.index[i].hour for i in range(0, n)]
     data['prev_conso'] = [data.conso[max(i - 1, 0)] for i in range(0, n)]
 
-    max_h = [max(data[data['hour_int'] == i].conso) for i in range(0, 24)]
     max_d = [max(data[data['day_int'] == i].conso) for i in range(0, 7)]
-    min_h = [min(data[data['hour_int'] == i].conso) for i in range(0, 24)]
     min_d = [min(data[data['day_int'] == i].conso) for i in range(0, 7)]
-    median_h = [statistics.median(data[data['hour_int'] == i].conso) for i in range(0, 24)]
     median_d = [statistics.median(data[data['day_int'] == i].conso) for i in range(0, 7)]
 
-    data['max_hour'] = [max_h[data.index[i].hour] for i in range(0, n)]
-    data['min_hour'] = [min_h[data.index[i].hour] for i in range(0, n)]
     data['max_day'] = [max_d[data.index[i].weekday()] for i in range(0, n)]
     data['min_day'] = [min_d[data.index[i].weekday()] for i in range(0, n)]
-    data['median_hour'] = [median_h[data.index[i].hour] for i in range(0, n)]
     data['median_day'] = [median_d[data.index[i].weekday()] for i in range(0, n)]
-    print("Day")
-    for i in range(0, 6):
-        print(i, "\t", max_d[i], "\t", min_d[i], "\t", median_d[i])
-    print("Hour")
-    for i in range(0, 24):
-        print(i, "\t", max_h[i], "\t", min_h[i], "\t", median_h[i])
+    if freq == "1H":
+        max_h = [max(data[data['hour_int'] == i].conso) for i in range(0, 24)]
+        min_h = [min(data[data['hour_int'] == i].conso) for i in range(0, 24)]
+        median_h = [statistics.median(data[data['hour_int'] == i].conso) for i in range(0, 24)]
+        data['max_hour'] = [max_h[data.index[i].hour] for i in range(0, n)]
+        data['min_hour'] = [min_h[data.index[i].hour] for i in range(0, n)]
+        data['median_hour'] = [median_h[data.index[i].hour] for i in range(0, n)]
 
-    method = "kendall"
-    # print(data.corr())
-    print(name, "\t", data['prev_conso'].corr(data['conso'], method=method), "\t",
-          data['month_int'].corr(data['conso'], method=method), "\t",
-          data['day_int'].corr(data['conso'], method=method), "\t",
-          data['hour_int'].corr(data['conso'], method=method), "\t", data['temp'].corr(data['conso'], method=method),
-          "\t",
-          data['irradiation'].corr(data['conso'], method=method), "\t",
-          data['wind_speed'].corr(data['conso'], method=method), "\t",
-          data['humidity'].corr(data['conso'], method=method), "\t",
-          data['min_day'].corr(data['conso'], method=method), "\t",
-          data['max_day'].corr(data['conso'], method=method), "\t",
-          data['median_day'].corr(data['conso'], method=method), "\t",
-          data['min_hour'].corr(data['conso'], method=method), "\t",
-          data['max_hour'].corr(data['conso'], method=method), "\t",
-          data['median_hour'].corr(data['conso'], method=method))
-
+    # print("Day")
+    # for i in range(0, 6):
+    #    print(i, "\t", max_d[i], "\t", min_d[i], "\t", median_d[i])
+    # print("Hour")
+    # for i in range(0, 24):
+    #    print(i, "\t", max_h[i], "\t", min_h[i], "\t", median_h[i])
     return data
 
 
@@ -174,16 +158,56 @@ def prediction_model(data):
     print(model.summary())
 
 
+def print_corr(name, data, method="kendall"):
+    print(name, "\t", data['prev_conso'].corr(data['conso'], method=method), "\t",
+          data['month_int'].corr(data['conso'], method=method), "\t",
+          data['day_int'].corr(data['conso'], method=method), "\t",
+          data['hour_int'].corr(data['conso'], method=method), "\t", data['temp'].corr(data['conso'], method=method),
+          "\t",
+          data['irradiation'].corr(data['conso'], method=method), "\t",
+          data['wind_speed'].corr(data['conso'], method=method), "\t",
+          data['humidity'].corr(data['conso'], method=method), "\t",
+          data['min_day'].corr(data['conso'], method=method), "\t",
+          data['max_day'].corr(data['conso'], method=method), "\t",
+          data['median_day'].corr(data['conso'], method=method))
+
+    # print(data['min_hour'].corr(data['conso'], method=method), "\t",
+    #      data['max_hour'].corr(data['conso'], method=method), "\t",
+    #      data['median_hour'].corr(data['conso'], method=method))
+    return
+
+
+def create_X_Y(ts: list, lag: int) -> tuple:
+    """
+    A method to create X and Y matrix from a time series list for the training of
+    deep learning models
+    """
+    X, Y = [], []
+
+    if len(ts) - lag <= 0:
+        X.append(ts)
+    else:
+        for i in range(len(ts) - lag):
+            Y.append(ts[i + lag])
+            X.append(ts[i:(i + lag)])
+
+    X, Y = np.array(X), np.array(Y)
+
+    # Reshaping the X array to an LSTM input shape
+    X = np.reshape(X, (X.shape[0], X.shape[1], 1))
+
+    return X, Y
+
 # Press the green button in the gutter to run the script.
 if __name__ == '__main__':
 
     for i in range(1, 10):
-        name = "data/consumptions/donneeconso0" + str(i) + ".csv"
-        data = data_analysis(name, "1H")
-        # box_plot_hour(data)
-        # prediction_model(data)
-    # for i in range(10, 17):
-    #    name = "data/consumptions/donneeconso" + str(i) + ".csv"
-    #    data_analysis(name, "1H")
+        name = "data/consumption/donneeconso0" + str(i) + ".csv"
+        data = data_analysis(name, "1D")
+        box_plot_day(data)
+        prediction_model(data)
+    for i in range(10, 17):
+        name = "data/consumption/donneeconso" + str(i) + ".csv"
+        data_analysis(name, "1D")
 
 # See PyCharm help at https://www.jetbrains.com/help/pycharm/
